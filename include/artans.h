@@ -15,7 +15,9 @@ public:
         Stack<char> operators;
         std::vector<std::string> tokens = StringAnalyze(infix);
 
-        for (const std::string& token : tokens) {
+        for (size_t i = 0; i < tokens.size(); ++i) {
+            const std::string& token = tokens[i];
+
             if (isNumber(token)) {
                 output += token + " ";
             }
@@ -34,12 +36,19 @@ public:
                 operators.pop();
             }
             else if (isOperator(token)) {
-                while (!operators.empty() && precedence(operators.top()) >= precedence(token[0])) {
-                    output += operators.top();
-                    output += " ";
-                    operators.pop();
+                
+                if (token == "-" && (i == 0 || isOperator(tokens[i - 1]) || tokens[i - 1] == "(")) {
+             
+                    operators.push('~'); 
                 }
-                operators.push(token[0]);
+                else {
+                    while (!operators.empty() && precedence(operators.top()) >= precedence(token[0])) {
+                        output += operators.top();
+                        output += " ";
+                        operators.pop();
+                    }
+                    operators.push(token[0]);
+                }
             }
             else if (token == "^") {
                 while (!operators.empty() && precedence(operators.top()) > precedence(token[0])) {
@@ -73,6 +82,10 @@ public:
         for (const std::string& token : tokens) {
             if (isNumber(token)) {
                 operands.push(stringToNumber(token));
+            }
+            else if (token == "~") { // ”нарный минус
+                double a = operands.top(); operands.pop();
+                operands.push(-a);
             }
             else if (isOperator(token)) {
                 double b = operands.top(); operands.pop();
@@ -146,6 +159,7 @@ private:
     }
 
     int precedence(char op) {
+        if (op == '~') return 4; 
         if (op == '^') return 3;
         if (op == '*' || op == '/') return 2;
         if (op == '+' || op == '-') return 1;

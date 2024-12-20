@@ -113,3 +113,37 @@ TEST(translator, SixConsecutiveOperations) {
     EXPECT_EQ(result5, -55);
     EXPECT_EQ(result6, 10.2);
 }
+//тесты на унарный минус
+TEST(translator, UnaryMinusBeforeNumber) {
+    ArithmeticTranslator translator;
+    std::string infix = "-5";
+    double expectedResult = -5;
+    EXPECT_EQ(expectedResult, translator.getAnswer(infix));
+}
+
+
+TEST(translator, UnaryMinusBeforeExpressionInBrackets) {
+    ArithmeticTranslator translator;
+    std::string infix = "-(3 + 4)";
+    double expectedResult = -7;
+    EXPECT_EQ(expectedResult, translator.getAnswer(infix));
+}
+
+TEST(translator, UnaryMinusWithMultiplication) {
+    ArithmeticTranslator translator;
+    std::string infix = "-2 * 3";
+    double expectedResult = -6;
+    EXPECT_EQ(expectedResult, translator.getAnswer(infix));
+}
+TEST(translator, UnaryMinusWithOperatorPriority) {
+    ArithmeticTranslator translator;
+    std::string infix = "-3 + 4 * 2";
+    double expectedResult = 5; 
+    EXPECT_EQ(expectedResult, translator.getAnswer(infix));
+}
+TEST(translator, UnaryMinusWithComplexFloatingPointExpression) {
+    ArithmeticTranslator translator;
+    std::string infix = "-(2.5 * (3.2 - 1.1) + 4.5)";
+    double expectedResult = -(2.5 * 2.1 + 4.5);
+    EXPECT_EQ(expectedResult, translator.getAnswer(infix));
+}
