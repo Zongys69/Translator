@@ -1,2 +1,2 @@
 # lab4_translator
-liulin yaroslav
+liulin yaroslav fi-2
