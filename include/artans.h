@@ -84,18 +84,23 @@ public:
                 operands.push(stringToNumber(token));
             }
             else if (token == "~") { // ”нарный минус
-                double a = operands.top(); operands.pop();
+                double a = operands.top();
+                operands.pop();
                 operands.push(-a);
             }
             else if (isOperator(token)) {
-                double b = operands.top(); operands.pop();
-                double a = operands.top(); operands.pop();
+                double b = operands.top();
+                operands.pop();
+                double a = operands.top();
+                operands.pop();
                 double result = applyOperator(a, b, token[0]);
                 operands.push(result);
             }
             else if (token == "^") {
-                double b = operands.top(); operands.pop();
-                double a = operands.top(); operands.pop();
+                double b = operands.top(); 
+                operands.pop();
+                double a = operands.top();
+                operands.pop();
                 operands.push(std::pow(a, b));
             }
         }
@@ -159,8 +164,8 @@ private:
     }
 
     int precedence(char op) {
-        if (op == '~') return 4; 
-        if (op == '^') return 3;
+        if (op == '^') return 4;
+        if (op == '~') return 3; 
         if (op == '*' || op == '/') return 2;
         if (op == '+' || op == '-') return 1;
         return 0;
