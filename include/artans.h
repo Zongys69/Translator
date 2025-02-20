@@ -1,4 +1,4 @@
-#ifndef __ARTANS_H__
+п»ї#ifndef __ARTANS_H__
 #define __ARTANS_H__
 
 #include "stack.h"
@@ -36,10 +36,10 @@ public:
                 operators.pop();
             }
             else if (isOperator(token)) {
-                
+
                 if (token == "-" && (i == 0 || isOperator(tokens[i - 1]) || tokens[i - 1] == "(")) {
-             
-                    operators.push('~'); 
+
+                    operators.push('~');
                 }
                 else {
                     while (!operators.empty() && precedence(operators.top()) >= precedence(token[0])) {
@@ -83,19 +83,24 @@ public:
             if (isNumber(token)) {
                 operands.push(stringToNumber(token));
             }
-            else if (token == "~") { // Унарный минус
-                double a = operands.top(); operands.pop();
+            else if (token == "~") { // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
+                double a = operands.top();
+                operands.pop();
                 operands.push(-a);
             }
             else if (isOperator(token)) {
-                double b = operands.top(); operands.pop();
-                double a = operands.top(); operands.pop();
+                double b = operands.top();
+                operands.pop();
+                double a = operands.top();
+                operands.pop();
                 double result = applyOperator(a, b, token[0]);
                 operands.push(result);
             }
             else if (token == "^") {
-                double b = operands.top(); operands.pop();
-                double a = operands.top(); operands.pop();
+                double b = operands.top();
+                operands.pop();
+                double a = operands.top();
+                operands.pop();
                 operands.push(std::pow(a, b));
             }
         }
@@ -159,8 +164,8 @@ private:
     }
 
     int precedence(char op) {
-        if (op == '~') return 4; 
-        if (op == '^') return 3;
+        if (op == '^') return 4;
+        if (op == '~') return 3;
         if (op == '*' || op == '/') return 2;
         if (op == '+' || op == '-') return 1;
         return 0;
