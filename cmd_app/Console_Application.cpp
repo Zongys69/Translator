@@ -1,47 +1,27 @@
+
 #include "artans.h"
-#include <iostream>
-#include <limits>  
 
-int main(int argc, char** argv) {
-    std::cout << "This is a calculator that supports:\n"
-        << "- Arithmetic operations with numbers (+, -, *, /, ^)\n"
-        << "- Polynomial expressions with variable x\n"
-        << "- Parentheses and unary minus\n"
-        << "- Floating-point numbers \n\n"
-        << "To quit, enter 'q'\n";
-
-    ArithmeticTranslator translator;
-
+int main() {
+    
+    ArithmeticTranslator calc;
+    std::cout << "Polynomial Calculator (enter 'q' to quit)\n";
+    std::cout << "You can save a polynomial by name (egc a = 2x^2 - 1)\n";
+    std::cout << "You can multiply, divide, exponentiate, can use unary minus polynom\n";
     while (true) {
+        std::cout << "> ";
+        std::string input;
+        std::getline(std::cin, input);
+
+        if (input == "q") break;
+        if (input.empty()) continue;
+
         try {
-            std::string infix;
-            std::cout << "\nEnter expression: ";
-            std::getline(std::cin, infix);
-
-            if (infix == "q") return 0;
-
-            double x = 0.0;
-            bool needs_x = (infix.find('x') != std::string::npos);
-
-            
-            if (needs_x) {
-                std::cout << "Enter x value: ";
-                while (!(std::cin >> x)) {
-                    std::cin.clear();
-                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    std::cout << "Invalid input! Enter x value: ";
-                }
-                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            }
-
-            
-            double result = translator.getAnswer(infix, x);
-            if (result == 0.0) result = 0.0;
-            std::cout << "Result: " << result << std::endl;
+            calc.processExpression(input);
         }
         catch (const std::exception& e) {
-            std::cout << "Error: " << e.what() << std::endl;
+            std::cerr << "Error: " << e.what() << "\n";
         }
     }
+
     return 0;
 }

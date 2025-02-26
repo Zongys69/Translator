@@ -7,230 +7,407 @@
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
+#include <map>
+#include <algorithm>
+#include <sstream>
+#include <cctype>
+#include <cstring>
+
 
 class ArithmeticTranslator {
+private:
+    struct Monom {
+        double coefficient;
+        std::map<char, int> variables;
+
+        Monom(double coeff = 0.0, std::map<char, int> vars = {})
+            : coefficient(coeff), variables(vars) {}
+
+        bool sameVars(const Monom& other) const {
+            return variables == other.variables;
+        }
+
+        Monom operator*(const Monom& other) const {
+            Monom res;
+            res.coefficient = coefficient * other.coefficient;
+            for (const auto& v : variables) res.variables[v.first] += v.second;
+            for (const auto& v : other.variables) res.variables[v.first] += v.second;
+            return res;
+        }
+    };
+
+    struct Polynomial {
+        std::vector<Monom> terms;
+
+        void simplify() {
+            std::vector<Monom> new_terms;
+            for (auto& term : terms) {
+                bool found = false;
+                for (auto& existing : new_terms) {
+                    if (existing.sameVars(term)) {
+                        existing.coefficient += term.coefficient;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && term.coefficient != 0) {
+                    new_terms.push_back(term);
+                }
+            }
+            terms = new_terms;
+        }
+    };
+
+    std::map<std::string, Polynomial> variables;
+
+    static void trim(std::string& s) {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+            return !std::isspace(ch);
+            }));
+        s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+            return !std::isspace(ch);
+            }).base(), s.end());
+    }
+
 public:
     std::string ToPostFix(const std::string& infix) {
-        std::string output = "";
-        Stack<char> operators;
-        std::vector<std::string> tokens = StringAnalyze(infix);
+        std::string output;
+        Stack<char> ops;
+        auto tokens = StringAnalyze(infix);
 
         for (size_t i = 0; i < tokens.size(); ++i) {
             const std::string& token = tokens[i];
 
-            if (isNumber(token) || token == "x") {
+            if (isNumber(token) || isalpha(token[0])) {
                 output += token + " ";
             }
             else if (token == "(") {
-                operators.push('(');
+                ops.push('(');
             }
             else if (token == ")") {
-                while (!operators.empty() && operators.top() != '(') {
-                    output += operators.top();
+                while (!ops.empty() && ops.top() != '(') {
+                    output += ops.top();
                     output += " ";
-                    operators.pop();
+                    ops.pop();
                 }
-                if (operators.empty()) {
-                    throw std::invalid_argument("Mismatched parentheses");
-                }
-                operators.pop();
+                if (ops.empty()) throw std::invalid_argument("Mismatched parentheses");
+                ops.pop();
+            }
+            else if (token == "~") {  // Обработка унарного минуса
+                ops.push('~');
             }
             else if (isOperator(token)) {
-                if (token == "-" && (i == 0 || isOperator(tokens[i - 1]) || tokens[i - 1] == "(")) {
-                    operators.push('~');
+                while (!ops.empty() && precedence(ops.top()) >= precedence(token[0])) {
+                    output += ops.top();
+                    output += " ";
+                    ops.pop();
                 }
-                else {
-                    while (!operators.empty() && precedence(operators.top()) >= precedence(token[0])) {
-                        output += operators.top();
-                        output += " ";
-                        operators.pop();
-                    }
-                    operators.push(token[0]);
-                }
+                ops.push(token[0]);
             }
             else if (token == "^") {
-                while (!operators.empty() && precedence(operators.top()) > precedence(token[0])) {
-                    output += operators.top();
-                    output += " ";
-                    operators.pop();
-                }
-                operators.push('^');
+                ops.push('^');
             }
             else {
                 throw std::invalid_argument("Invalid token: " + token);
             }
         }
 
-        while (!operators.empty()) {
-            if (operators.top() == '(') {
-                throw std::invalid_argument("Mismatched parentheses");
-            }
-            output += operators.top();
+        while (!ops.empty()) {
+            if (ops.top() == '(') throw std::invalid_argument("Mismatched parentheses");
+            output += ops.top();
             output += " ";
-            operators.pop();
+            ops.pop();
         }
 
         return output;
     }
 
-    double Calculate(const std::string& postfix, double x_value) {
-        Stack<double> operands;
-        std::vector<std::string> tokens = StringAnalyze(postfix);
+    void processExpression(const std::string& expr) {
+        size_t eq_pos = expr.find('=');
+        if (eq_pos != std::string::npos) {
+            std::string var = expr.substr(0, eq_pos);
+            std::string value = expr.substr(eq_pos + 1);
+            trim(var);
+            trim(value);
 
-        for (const std::string& token : tokens) {
-            if (isNumber(token)) {
-                operands.push(stringToNumber(token));
+            try {
+                variables[var] = parseExpression(value);
+                std::cout << "Stored '" << var << "' = " << polyToString(variables[var]) << "\n";
             }
-            else if (token == "x") {
-                operands.push(x_value);
-            }
-            else if (token == "~") {
-                double a = operands.top();
-                operands.pop();
-                operands.push(-a);
-            }
-            else if (isOperator(token)) {
-                double b = operands.top();
-                operands.pop();
-                double a = operands.top();
-                operands.pop();
-                operands.push(applyOperator(a, b, token[0]));
-            }
-            else if (token == "^") {
-                double b = operands.top();
-                operands.pop();
-                double a = operands.top();
-                operands.pop();
-                operands.push(std::pow(a, b));
+            catch (const std::exception& e) {
+                std::cerr << "Error: " << e.what() << "\n";
             }
         }
-
-        if (operands.sizes() != 1) {
-            throw std::invalid_argument("Invalid expression");
+        else {
+            try {
+                Polynomial result = parseExpression(expr);
+                std::cout << "Result: " << polyToString(result) << "\n";
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error: " << e.what() << "\n";
+            }
         }
-
-        return operands.top();
-    }
-    
-    double getAnswer(const std::string& infix, double x) {
-        std::string postfix = ToPostFix(infix);
-        double result = Calculate(postfix, x);
-        return Calculate(postfix, x);
-        if (result == 0.0 && std::signbit(result)) {
-            return 0.0;
-        }
-        return result;
-    }
-    double getAnswer(const std::string& infix) {
-        return getAnswer(infix, 0.0); 
     }
 
 private:
-    bool isNumber(const std::string& token) {
-        if (token.empty()) return false;
+    Polynomial parseExpression(const std::string& expr) {
+        std::string postfix = ToPostFix(expr);
+        return evaluatePostfix(postfix);
+    }
+
+    Polynomial evaluatePostfix(const std::string& postfix) {
+        Stack<Polynomial> stack;
+        auto tokens = StringAnalyze(postfix);
+
+        for (const auto& token : tokens) {
+            if (token.empty()) continue;
+
+          
+            if (isNumber(token)) {
+                stack.push(Polynomial{ { Monom{ stringToDouble(token), {} } } });
+            }
+            else if (isalpha(token[0])) {
+                if (variables.count(token)) {
+                    stack.push(variables[token]);
+                }
+                else {
+                    std::map<char, int> vars{ {token[0], 1} };
+                    stack.push(Polynomial{ { Monom{1.0, vars} } });
+                }
+            }
+            else if (token == "~") {
+                if (stack.empty()) {
+                    throw std::invalid_argument("Invalid unary minus position");
+                }
+                Polynomial a = stack.top();
+                stack.pop();
+                for (auto& term : a.terms) {
+                    term.coefficient *= -1;
+                }
+                stack.push(a);
+            }
+            else if (isOperator(token)) {
+                Polynomial b = stack.top(); stack.pop();
+                Polynomial a = stack.top(); stack.pop();
+                stack.push(applyOperation(a, b, token[0]));
+            }
+            else if (token == "^") {
+                Polynomial exp = stack.top(); stack.pop();
+                Polynomial base = stack.top(); stack.pop();
+                stack.push(power(base, exp));
+            }
+        }
+
+        if (stack.sizes() != 1) {
+            throw std::invalid_argument("Invalid expression");
+        }
+
+        Polynomial res = stack.top();
+        res.simplify();
+        return res;
+    }
+
+    Polynomial applyOperation(const Polynomial& a, const Polynomial& b, char op) {
+        switch (op) {
+        case '+': return add(a, b);
+        case '-': return subtract(a, b);
+        case '*': return multiply(a, b);
+        case '/': return divide(a, b);
+        default: throw std::invalid_argument("Unknown operator");
+        }
+    }
+
+    Polynomial add(const Polynomial& a, const Polynomial& b) {
+        Polynomial res = a;
+        for (const auto& term : b.terms) res.terms.push_back(term);
+        res.simplify();
+        return res;
+    }
+
+    Polynomial subtract(const Polynomial& a, const Polynomial& b) {
+        Polynomial res = a;
+        for (const auto& term : b.terms) {
+            Monom neg = term;
+            neg.coefficient *= -1;
+            res.terms.push_back(neg);
+        }
+        res.simplify();
+        return res;
+    }
+
+    Polynomial multiply(const Polynomial& a, const Polynomial& b) {
+        Polynomial res;
+        for (const auto& termA : a.terms) {
+            for (const auto& termB : b.terms) {
+                Monom new_term;
+                // Правильное умножение коэффициентов
+                new_term.coefficient = termA.coefficient * termB.coefficient;
+
+                // Правильное объединение переменных
+                new_term.variables = termA.variables;
+                for (const auto& var : termB.variables) {
+                    new_term.variables[var.first] += var.second;
+                }
+                res.terms.push_back(new_term);
+            }
+        }
+        res.simplify();
+        return res;
+    }
+
+    Polynomial divide(const Polynomial& a, const Polynomial& b) {
+        // Проверяем что делитель - константа
+        if (b.terms.size() != 1 || !b.terms[0].variables.empty()) {
+            throw std::invalid_argument("Can only divide by a constant");
+        }
+
+        double divisor = b.terms[0].coefficient;
+        if (divisor == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+
+        Polynomial result;
+        for (const auto& term : a.terms) {
+            Monom newTerm = term;
+            newTerm.coefficient /= divisor;
+            result.terms.push_back(newTerm);
+        }
+
+        result.simplify();
+        return result;
+    }
+
+    Polynomial power(const Polynomial& base, const Polynomial& exp) {
+        if (exp.terms.size() != 1 || !exp.terms[0].variables.empty()) {
+            throw std::invalid_argument("Exponent must be a constant");
+        }
+        int n = static_cast<int>(exp.terms[0].coefficient);
+
+        Polynomial result;
+        result.terms.emplace_back(1.0, std::map<char, int>{});
+
+        for (int i = 0; i < n; ++i) {
+            result = multiply(result, base);
+        }
+        return result;
+    }
+
+    std::string polyToString(const Polynomial& poly) {
+        std::stringstream ss;
+        bool first = true;
+        for (const auto& term : poly.terms) {
+            if (term.coefficient == 0) continue;
+
+            if (!first) {
+                ss << (term.coefficient > 0 ? " + " : " - ");
+            }
+            else if (term.coefficient < 0) {
+                ss << "-";
+            }
+            first = false;
+
+            double abs_coeff = std::abs(term.coefficient);
+            if (abs_coeff != 1.0 || term.variables.empty()) {
+                ss << abs_coeff;
+            }
+
+            for (const auto& var : term.variables) {
+                ss << var.first;
+                if (var.second > 1) ss << "^" << var.second;
+            }
+        }
+        return ss.str().empty() ? "0" : ss.str();
+    }
+
+    double stringToDouble(const std::string& s) {
+        std::istringstream iss(s);
+        double d;
+        if (!(iss >> d)) throw std::invalid_argument("Invalid number: " + s);
+        return d;
+    }
+
+    bool isNumber(const std::string& s) {
+        if (s.empty()) return false;
         size_t start = 0;
-        if (token[0] == '-') {
-            if (token.size() == 1) return false;
+        if (s[0] == '-') {
+            if (s.size() == 1) return false;
             start = 1;
         }
-        int dotCount = 0;
-        for (size_t i = start; i < token.size(); ++i) {
-            if (token[i] == '.') {
-                if (++dotCount > 1) return false;
+        bool has_dot = false;
+        for (size_t i = start; i < s.size(); ++i) {
+            if (s[i] == '.') {
+                if (has_dot) return false;
+                has_dot = true;
             }
-            else if (token[i] < '0' || token[i] > '9') {
+            else if (!isdigit(s[i])) {
                 return false;
             }
         }
         return true;
     }
 
-    bool isOperator(const std::string& token) {
-        return token.size() == 1 &&
-            (token[0] == '+' || token[0] == '-' || token[0] == '*' || token[0] == '/');
+    bool isOperator(const std::string& s) {
+        return s.size() == 1 && strchr("+-*/", s[0]);
     }
 
     int precedence(char op) {
-        if (op == '^') return 4;
-        if (op == '~') return 3;
-        if (op == '*' || op == '/') return 2;
-        if (op == '+' || op == '-') return 1;
-        return 0;
-    }
-
-    double stringToNumber(const std::string& str) {
-        size_t offset = 0;
-        double result = 0;
-        try {
-            result = std::stod(str, &offset);
-        }
-        catch (...) {
-            throw std::invalid_argument("Invalid number: " + str);
-        }
-        if (offset != str.size()) {
-            throw std::invalid_argument("Invalid number: " + str);
-        }
-        return result;
-    }
-
-    double applyOperator(double a, double b, char op) {
         switch (op) {
-        case '+': return a + b;
-        case '-': return a - b;
-        case '*': return a * b;
-        case '/':
-            if (b == 0) throw std::invalid_argument("Division by zero");
-            return a / b;
-        default: throw std::invalid_argument("Unknown operator");
+        case '^': return 4;
+        case '*': case '/': return 3;
+        case '+': case '-': return 2;
+        default: return 0;
         }
     }
 
     std::vector<std::string> StringAnalyze(const std::string& str) {
         std::vector<std::string> tokens;
         std::string current;
+        auto flush = [&]() {
+            if (!current.empty()) {
+                tokens.push_back(current);
+                current.clear();
+            }
+            };
 
         for (size_t i = 0; i < str.size(); ++i) {
             char c = str[i];
 
             if (isspace(c)) {
-                if (!current.empty()) {
-                    tokens.push_back(current);
-                    current.clear();
-                }
+                flush();
                 continue;
             }
-
-
-            if (!current.empty() &&
-                ((isNumber(current) && (c == 'x' || c == '(')) ||
-                    (current == "x" && (c == '(' || isdigit(c)))
-                    ))
+            if (c == '-' && (i == 0 || tokens.empty() ||
+                tokens.back() == "(" || isOperator(tokens.back())))
             {
-                tokens.push_back(current);
-                tokens.push_back("*");
-                current.clear();
+                flush();
+                tokens.push_back("~");
             }
-
-
-            if (c == '(' || c == ')' || c == '^' || isOperator(std::string(1, c))) {
+            else if (isalnum(c) || c == '.') {
                 if (!current.empty()) {
-                    tokens.push_back(current);
-                    current.clear();
+                    if ((isdigit(current.back()) && isalpha(c)) ||
+                        (isalpha(current.back()) && (isdigit(c) || c == '.')))
+                    {
+                        flush();
+                        tokens.push_back("*");
+                    }
                 }
-                tokens.push_back(std::string(1, c));
-            }
-            else {
                 current += c;
             }
+            else {
+                flush();
+                if (c == '-' && (i == 0 || str[i - 1] == '(' || isOperator(std::string(1, str[i - 1])))) {
+                    current = "~"; // Унарный минус
+                }
+                else {
+                    current = c;
+                }
+                flush();
+            }
         }
-
-        if (!current.empty()) {
-            tokens.push_back(current);
-        }
+        flush();
 
         return tokens;
     }
-
 };
 
-#endif
+#endif // __ARTANS_H__
