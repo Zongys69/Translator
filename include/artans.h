@@ -5,8 +5,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <cmath>  
-#include <stdexcept>  
+#include <cmath>
+#include <stdexcept>
 
 class ArithmeticTranslator {
 public:
@@ -18,7 +18,7 @@ public:
         for (size_t i = 0; i < tokens.size(); ++i) {
             const std::string& token = tokens[i];
 
-            if (isNumber(token)) {
+            if (isNumber(token) || token == "x") {
                 output += token + " ";
             }
             else if (token == "(") {
@@ -31,14 +31,12 @@ public:
                     operators.pop();
                 }
                 if (operators.empty()) {
-                    throw std::invalid_argument("Mismatched parentheses: no opening bracket for ')'");
+                    throw std::invalid_argument("Mismatched parentheses");
                 }
                 operators.pop();
             }
             else if (isOperator(token)) {
-
                 if (token == "-" && (i == 0 || isOperator(tokens[i - 1]) || tokens[i - 1] == "(")) {
-
                     operators.push('~');
                 }
                 else {
@@ -65,7 +63,7 @@ public:
 
         while (!operators.empty()) {
             if (operators.top() == '(') {
-                throw std::invalid_argument("Mismatched parentheses: no closing bracket for '('");
+                throw std::invalid_argument("Mismatched parentheses");
             }
             output += operators.top();
             output += " ";
@@ -75,7 +73,7 @@ public:
         return output;
     }
 
-    double Calculate(const std::string& postfix) {
+    double Calculate(const std::string& postfix, double x_value) {
         Stack<double> operands;
         std::vector<std::string> tokens = StringAnalyze(postfix);
 
@@ -83,7 +81,10 @@ public:
             if (isNumber(token)) {
                 operands.push(stringToNumber(token));
             }
-            else if (token == "~") { // ������� �����
+            else if (token == "x") {
+                operands.push(x_value);
+            }
+            else if (token == "~") {
                 double a = operands.top();
                 operands.pop();
                 operands.push(-a);
@@ -93,8 +94,7 @@ public:
                 operands.pop();
                 double a = operands.top();
                 operands.pop();
-                double result = applyOperator(a, b, token[0]);
-                operands.push(result);
+                operands.push(applyOperator(a, b, token[0]));
             }
             else if (token == "^") {
                 double b = operands.top();
@@ -106,61 +106,48 @@ public:
         }
 
         if (operands.sizes() != 1) {
-            throw std::invalid_argument("Invalid expression: too many values left in stack after calculation");
+            throw std::invalid_argument("Invalid expression");
         }
 
         return operands.top();
     }
-
-    double getAnswer(const std::string& infix) {
+    
+    double getAnswer(const std::string& infix, double x) {
         std::string postfix = ToPostFix(infix);
-        return Calculate(postfix);
+        double result = Calculate(postfix, x);
+        return Calculate(postfix, x);
+        if (result == 0.0 && std::signbit(result)) {
+            return 0.0;
+        }
+        return result;
+    }
+    double getAnswer(const std::string& infix) {
+        return getAnswer(infix, 0.0); 
     }
 
 private:
     bool isNumber(const std::string& token) {
         if (token.empty()) return false;
+        size_t start = 0;
+        if (token[0] == '-') {
+            if (token.size() == 1) return false;
+            start = 1;
+        }
         int dotCount = 0;
-
-        for (size_t i = 0; i < token.length(); ++i) {
+        for (size_t i = start; i < token.size(); ++i) {
             if (token[i] == '.') {
-                dotCount++;
-                if (dotCount > 1) return false;
+                if (++dotCount > 1) return false;
             }
             else if (token[i] < '0' || token[i] > '9') {
                 return false;
             }
         }
-
         return true;
     }
 
-    double stringToNumber(const std::string& str) {
-        double result = 0;
-        size_t i = 0;
-        bool isNegative = false;
-
-        if (str[i] == '-') {
-            isNegative = true;
-            i++;
-        }
-
-        for (; i < str.length() && str[i] != '.'; ++i) {
-            result = result * 10 + (str[i] - '0');
-        }
-
-        if (i < str.length() && str[i] == '.') {
-            i++;
-            for (double place = 0.1; i < str.length(); i++, place *= 0.1) {
-                result += (str[i] - '0') * place;
-            }
-        }
-
-        return isNegative ? -result : result;
-    }
-
     bool isOperator(const std::string& token) {
-        return token == "+" || token == "-" || token == "*" || token == "/";
+        return token.size() == 1 &&
+            (token[0] == '+' || token[0] == '-' || token[0] == '*' || token[0] == '/');
     }
 
     int precedence(char op) {
@@ -171,32 +158,64 @@ private:
         return 0;
     }
 
+    double stringToNumber(const std::string& str) {
+        size_t offset = 0;
+        double result = 0;
+        try {
+            result = std::stod(str, &offset);
+        }
+        catch (...) {
+            throw std::invalid_argument("Invalid number: " + str);
+        }
+        if (offset != str.size()) {
+            throw std::invalid_argument("Invalid number: " + str);
+        }
+        return result;
+    }
+
     double applyOperator(double a, double b, char op) {
         switch (op) {
         case '+': return a + b;
         case '-': return a - b;
         case '*': return a * b;
-        case '/': return (b == 0) ? throw std::invalid_argument("Division by zero!") : a / b;
-        default: return 0.0;
+        case '/':
+            if (b == 0) throw std::invalid_argument("Division by zero");
+            return a / b;
+        default: throw std::invalid_argument("Unknown operator");
         }
     }
 
     std::vector<std::string> StringAnalyze(const std::string& str) {
         std::vector<std::string> tokens;
-        std::string current = "";
+        std::string current;
+
         for (size_t i = 0; i < str.size(); ++i) {
             char c = str[i];
 
             if (isspace(c)) {
                 if (!current.empty()) {
                     tokens.push_back(current);
-                    current = "";
+                    current.clear();
                 }
+                continue;
             }
-            else if (isOperator(std::string(1, c)) || c == '(' || c == ')' || c == '^') {
+
+
+            if (!current.empty() &&
+                ((isNumber(current) && (c == 'x' || c == '(')) ||
+                    (current == "x" && (c == '(' || isdigit(c)))
+                    ))
+            {
+                tokens.push_back(current);
+                tokens.push_back("*");
+                current.clear();
+            }
+
+
+            if (c == '(' || c == ')' || c == '^' || isOperator(std::string(1, c))) {
                 if (!current.empty()) {
                     tokens.push_back(current);
-                    current = "";
+                    current.clear();
                 }
                 tokens.push_back(std::string(1, c));
             }
@@ -211,6 +230,7 @@ private:
 
         return tokens;
     }
+
 };
 
 #endif

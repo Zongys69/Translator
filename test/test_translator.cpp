@@ -147,3 +147,63 @@ TEST(translator, UnaryMinusWithComplexFloatingPointExpression) {
     double expectedResult = -(2.5 * 2.1 + 4.5);
     EXPECT_EQ(expectedResult, translator.getAnswer(infix));
 }
+
+TEST(TranslatorTest, SimplePolynomial) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("2x + 3", 1.0));
+}
+
+TEST(TranslatorTest, PolynomialWithPower) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_NEAR(0.0, translator.getAnswer("x^2 -4x +4", 2.0), 1e-9);
+}
+
+TEST(TranslatorTest, PolynomialWithFractions) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_NEAR(32.2, translator.getAnswer("3.5x^3 +2.1x", 2.0), 1e-9);
+}
+
+TEST(TranslatorTest, NegativeXValue) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(-9.0, translator.getAnswer("-x^2 +5x -3", -1.0));
+}
+
+TEST(TranslatorTest, PolynomialWithZeroCoefficient) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("0x^3 +4x -7", 3.0));
+}
+
+TEST(TranslatorTest, ImplicitMultiplication) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(24.0, translator.getAnswer("2x(x+1)", 3.0));
+}
+
+TEST(TranslatorTest, CombinedOperations) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("(x^2 +1)/(x-1)", 2.0));
+}
+
+TEST(TranslatorTest, HighDegreePolynomial) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(18.0, translator.getAnswer("x^5 -2x^3 +x", 2.0));
+}
+
+TEST(TranslatorTest, ZeroXValue) {
+    ArithmeticTranslator translator;
+   
+    EXPECT_DOUBLE_EQ(10.0, translator.getAnswer("5x^4 -2x +10", 0.0));
+}
+
+TEST(TranslatorTest, ComplexPolynomialExpression) {
+    ArithmeticTranslator translator;
+    
+    EXPECT_DOUBLE_EQ(27.0, translator.getAnswer("2(x+3)^2 -5x", 1.0));
+}

@@ -1,34 +1,47 @@
 #include "artans.h"
-
+#include <iostream>
+#include <limits>  
 
 int main(int argc, char** argv) {
-    std::cout << "This is a simple calculator for performing arithmetic operations. It supports integers and floating-point numbers, operations +, -, *, /, ^, as well as parentheses. Unary minus is supported. For entering floating-point numbers, use formats like 2.1, 2.0, and so on.";
-    std::cout << std::endl;
-    std::cout << "To quit, press the q key on your keyboard" << std::endl;
+    std::cout << "This is a calculator that supports:\n"
+        << "- Arithmetic operations with numbers (+, -, *, /, ^)\n"
+        << "- Polynomial expressions with variable x\n"
+        << "- Parentheses and unary minus\n"
+        << "- Floating-point numbers \n\n"
+        << "To quit, enter 'q'\n";
+
     ArithmeticTranslator translator;
 
     while (true) {
         try {
-        std::string infix;
-        std::cout << "Enter an arithmetic expression: ";
-        std::getline(std::cin, infix);
+            std::string infix;
+            std::cout << "\nEnter expression: ";
+            std::getline(std::cin, infix);
 
-        if (infix == "q") {
-            return 0;
-        }
-        
-            // Получаем ответ как число
-            double result = translator.getAnswer(infix);
+            if (infix == "q") return 0;
+
+            double x = 0.0;
+            bool needs_x = (infix.find('x') != std::string::npos);
+
+            
+            if (needs_x) {
+                std::cout << "Enter x value: ";
+                while (!(std::cin >> x)) {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    std::cout << "Invalid input! Enter x value: ";
+                }
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            }
+
+            
+            double result = translator.getAnswer(infix, x);
+            if (result == 0.0) result = 0.0;
             std::cout << "Result: " << result << std::endl;
         }
-        catch (const char* e) {
-            std::cout << e;
+        catch (const std::exception& e) {
+            std::cout << "Error: " << e.what() << std::endl;
         }
-        catch (std::exception e) {
-            std::cout << e.what() << std::endl;
-        }
-       
-       
     }
     return 0;
 }
