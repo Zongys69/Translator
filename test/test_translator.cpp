@@ -148,62 +148,57 @@ TEST(translator, UnaryMinusWithComplexFloatingPointExpression) {
     EXPECT_EQ(expectedResult, translator.getAnswer(infix));
 }
 
-TEST(TranslatorTest, SimplePolynomial) {
+TEST(POLINOM, SIMPLEMONOM) {
     ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("2x + 3", 1.0));
+    int key1 = translator.addPolinom("xyz^2");
+    EXPECT_EQ(translator.getPolinom(key1), "1*(x^1)*1*(y^1)*1*(z^2)");
 }
 
-TEST(TranslatorTest, PolynomialWithPower) {
+TEST(POLINOM, SIMPLEPOLINOM) {
     ArithmeticTranslator translator;
-    
-    EXPECT_NEAR(0.0, translator.getAnswer("x^2 -4x +4", 2.0), 1e-9);
+    int key1 = translator.addPolinom("xyz^2 + 2xy");
+    EXPECT_EQ(translator.getPolinom(key1), "1*(x^1)*1*(y^1)*1*(z^2) + 2*(x^1)*1*(y^1)*1*(z^0)");
 }
 
-TEST(TranslatorTest, PolynomialWithFractions) {
+TEST(POLINOM, POLINOMWITHFLOATKOEF) {
     ArithmeticTranslator translator;
-    
-    EXPECT_NEAR(32.2, translator.getAnswer("3.5x^3 +2.1x", 2.0), 1e-9);
+    int key1 = translator.addPolinom("xyz^2 + 2.1xy");
+    EXPECT_EQ(translator.getPolinom(key1), "1*(x^1)*1*(y^1)*1*(z^2) + 2.1*(x^1)*1*(y^1)*1*(z^0)");
 }
 
-TEST(TranslatorTest, NegativeXValue) {
+
+TEST(POLINOM, LONGPOLINOM) {
     ArithmeticTranslator translator;
+    int key1 = translator.addPolinom("xyz^2 + 2.1xy +x^6y^9 - 84xy^2 - 1");
+    EXPECT_EQ(translator.getPolinom(key1), "1*(x^1)*1*(y^1)*1*(z^2) + 2.1*(x^1)*1*(y^1)*1*(z^0) + 1*(x^6)*1*(y^9)*1*(z^0) + -84*(x^1)*1*(y^2)*1*(z^0) + -1*(x^0)*1*(y^0)*1*(z^0)");
+}
+TEST(POLINOM, UNARYMINUSMONOM) {
+    ArithmeticTranslator translator;
+    int key1 = translator.addPolinom("-2xyz^2");
+    EXPECT_EQ(translator.getPolinom(key1), "-2*(x^1)*1*(y^1)*1*(z^2)");
+}
+TEST(POLINOM, CANMAKEAKEY) {
+    ArithmeticTranslator translator;
+    int key1 = translator.addPolinom("-2xyz^2");
+    int key2 = translator.addPolinom("-2xyz");
+    int n = 2;
+    EXPECT_EQ(key2, n);
+    EXPECT_EQ(key1, n-1);
+}
+TEST(POLINOM, CANTTHROWANEXPECTION) {
     
-    EXPECT_DOUBLE_EQ(-9.0, translator.getAnswer("-x^2 +5x -3", -1.0));
+    ArithmeticTranslator translator;
+    int key1 = translator.addPolinom("-2xyz^2");
+    ASSERT_NO_THROW();
 }
 
-TEST(TranslatorTest, PolynomialWithZeroCoefficient) {
-    ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("0x^3 +4x -7", 3.0));
-}
 
-TEST(TranslatorTest, ImplicitMultiplication) {
-    ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(24.0, translator.getAnswer("2x(x+1)", 3.0));
-}
 
-TEST(TranslatorTest, CombinedOperations) {
-    ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(5.0, translator.getAnswer("(x^2 +1)/(x-1)", 2.0));
-}
 
-TEST(TranslatorTest, HighDegreePolynomial) {
-    ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(18.0, translator.getAnswer("x^5 -2x^3 +x", 2.0));
-}
 
-TEST(TranslatorTest, ZeroXValue) {
-    ArithmeticTranslator translator;
-   
-    EXPECT_DOUBLE_EQ(10.0, translator.getAnswer("5x^4 -2x +10", 0.0));
-}
 
-TEST(TranslatorTest, ComplexPolynomialExpression) {
-    ArithmeticTranslator translator;
-    
-    EXPECT_DOUBLE_EQ(27.0, translator.getAnswer("2(x+3)^2 -5x", 1.0));
-}
+
+
+/*int key1 = translator.addPolinom("x^2 + 3y - 5z");
+    int key2 = translator.addPolinom("2xy + 4z^3");
+*/
