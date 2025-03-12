@@ -2,6 +2,7 @@
 #define __ARTANS_H__
 
 #include "stack.h"
+#include "polinom.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -37,9 +38,7 @@ public:
                 operators.pop();
             }
             else if (isOperator(token)) {
-
                 if (token == "-" && (i == 0 || isOperator(tokens[i - 1]) || tokens[i - 1] == "(")) {
-
                     operators.push('~');
                 }
                 else {
@@ -84,7 +83,7 @@ public:
             if (isNumber(token)) {
                 operands.push(stringToNumber(token));
             }
-            else if (token == "~") { 
+            else if (token == "~") {
                 double a = operands.top();
                 operands.pop();
                 operands.push(-a);
@@ -154,6 +153,7 @@ public:
         }
         return polinoms[key - 1].toString();
     }
+
     std::string getAllPolinoms() const {
         std::ostringstream oss;
         for (size_t i = 0; i < polinoms.size(); ++i) {
@@ -163,48 +163,6 @@ public:
     }
 
 private:
-    class Monom {
-    private:
-        double coefficient;
-        int x_degree;
-        int y_degree;
-        int z_degree;
-
-    public:
-        Monom(double coeff, int x, int y, int z)
-            : coefficient(coeff), x_degree(x), y_degree(y), z_degree(z) {}
-
-        std::string toString() const {
-            std::ostringstream oss;
-            oss << coefficient << "*(x^" << x_degree << ")*1*(y^" << y_degree << ")*1*(z^" << z_degree << ")";
-            return oss.str();
-        }
-    };
-
-    class Polinom {
-    private:
-        std::vector<Monom> monoms;
-
-    public:
-        void addMonom(const Monom& monom) {
-            monoms.push_back(monom);
-        }
-
-        std::string toString() const {
-            if (monoms.empty()) {
-                return "";
-            }
-            std::string result;
-            for (size_t i = 0; i < monoms.size(); ++i) {
-                if (i != 0) {
-                    result += " + ";
-                }
-                result += monoms[i].toString();
-            }
-            return result;
-        }
-    };
-
     std::vector<Polinom> polinoms;
 
     std::vector<std::string> splitIntoMonoms(const std::string& expr) {
@@ -226,20 +184,17 @@ private:
             }
         }
 
-       
         std::string lastPart = expr.substr(start);
         if (!lastPart.empty()) {
             monoms.push_back(lastPart);
         }
 
-        
         if (monoms.empty()) {
             throw std::invalid_argument("No valid monoms found");
         }
 
         return monoms;
     }
-
 
     Monom parseMonom(const std::string& monomStr) {
         if (monomStr.empty()) {
@@ -249,7 +204,6 @@ private:
         double sign = 1.0;
         size_t pos = 0;
 
-        
         if (monomStr[pos] == '+') {
             sign = 1.0;
             pos++;
@@ -326,100 +280,99 @@ private:
         return Monom(coeff, x, y, z);
     }
 
-    private:
-        bool isNumber(const std::string& token) {
-            if (token.empty()) return false;
-            int dotCount = 0;
+    bool isNumber(const std::string& token) {
+        if (token.empty()) return false;
+        int dotCount = 0;
 
-            for (size_t i = 0; i < token.length(); ++i) {
-                if (token[i] == '.') {
-                    dotCount++;
-                    if (dotCount > 1) return false;
-                }
-                else if (token[i] < '0' || token[i] > '9') {
-                    return false;
-                }
+        for (size_t i = 0; i < token.length(); ++i) {
+            if (token[i] == '.') {
+                dotCount++;
+                if (dotCount > 1) return false;
             }
-
-            return true;
-        }
-
-        double stringToNumber(const std::string& str) {
-            double result = 0;
-            size_t i = 0;
-            bool isNegative = false;
-
-            if (str[i] == '-') {
-                isNegative = true;
-                i++;
-            }
-
-            for (; i < str.length() && str[i] != '.'; ++i) {
-                result = result * 10 + (str[i] - '0');
-            }
-
-            if (i < str.length() && str[i] == '.') {
-                i++;
-                for (double place = 0.1; i < str.length(); i++, place *= 0.1) {
-                    result += (str[i] - '0') * place;
-                }
-            }
-
-            return isNegative ? -result : result;
-        }
-
-        bool isOperator(const std::string& token) {
-            return token == "+" || token == "-" || token == "*" || token == "/";
-        }
-
-        int precedence(char op) {
-            if (op == '^') return 4;
-            if (op == '~') return 3;
-            if (op == '*' || op == '/') return 2;
-            if (op == '+' || op == '-') return 1;
-            return 0;
-        }
-
-        double applyOperator(double a, double b, char op) {
-            switch (op) {
-            case '+': return a + b;
-            case '-': return a - b;
-            case '*': return a * b;
-            case '/': return (b == 0) ? throw std::invalid_argument("Division by zero!") : a / b;
-            default: return 0.0;
+            else if (token[i] < '0' || token[i] > '9') {
+                return false;
             }
         }
 
-        std::vector<std::string> StringAnalyze(const std::string& str) {
-            std::vector<std::string> tokens;
-            std::string current = "";
-            for (size_t i = 0; i < str.size(); ++i) {
-                char c = str[i];
+        return true;
+    }
 
-                if (isspace(c)) {
-                    if (!current.empty()) {
-                        tokens.push_back(current);
-                        current = "";
-                    }
-                }
-                else if (isOperator(std::string(1, c)) || c == '(' || c == ')' || c == '^') {
-                    if (!current.empty()) {
-                        tokens.push_back(current);
-                        current = "";
-                    }
-                    tokens.push_back(std::string(1, c));
-                }
-                else {
-                    current += c;
-                }
-            }
+    double stringToNumber(const std::string& str) {
+        double result = 0;
+        size_t i = 0;
+        bool isNegative = false;
 
-            if (!current.empty()) {
-                tokens.push_back(current);
-            }
-
-            return tokens;
+        if (str[i] == '-') {
+            isNegative = true;
+            i++;
         }
+
+        for (; i < str.length() && str[i] != '.'; ++i) {
+            result = result * 10 + (str[i] - '0');
+        }
+
+        if (i < str.length() && str[i] == '.') {
+            i++;
+            for (double place = 0.1; i < str.length(); i++, place *= 0.1) {
+                result += (str[i] - '0') * place;
+            }
+        }
+
+        return isNegative ? -result : result;
+    }
+
+    bool isOperator(const std::string& token) {
+        return token == "+" || token == "-" || token == "*" || token == "/";
+    }
+
+    int precedence(char op) {
+        if (op == '^') return 4;
+        if (op == '~') return 3;
+        if (op == '*' || op == '/') return 2;
+        if (op == '+' || op == '-') return 1;
+        return 0;
+    }
+
+    double applyOperator(double a, double b, char op) {
+        switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return (b == 0) ? throw std::invalid_argument("Division by zero!") : a / b;
+        default: return 0.0;
+        }
+    }
+
+    std::vector<std::string> StringAnalyze(const std::string& str) {
+        std::vector<std::string> tokens;
+        std::string current = "";
+        for (size_t i = 0; i < str.size(); ++i) {
+            char c = str[i];
+
+            if (isspace(c)) {
+                if (!current.empty()) {
+                    tokens.push_back(current);
+                    current = "";
+                }
+            }
+            else if (isOperator(std::string(1, c)) || c == '(' || c == ')' || c == '^') {
+                if (!current.empty()) {
+                    tokens.push_back(current);
+                    current = "";
+                }
+                tokens.push_back(std::string(1, c));
+            }
+            else {
+                current += c;
+            }
+        }
+
+        if (!current.empty()) {
+            tokens.push_back(current);
+        }
+
+        return tokens;
+    }
 };
 
-#endif
+#endif // __ARTANS_H__
