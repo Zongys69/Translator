@@ -1,6 +1,9 @@
 #include "artans.h"
+#include "sorted_table.h"
+#include "string.h"
 #include <gtest.h>
-
+#include "monom.h"
+#include <stdexcept>
 
 
 /// “ест дл€ сложного выражени€ с возведением в степень
@@ -195,10 +198,375 @@ TEST(POLINOM, CANTTHROWANEXPECTION) {
 
 
 
+TEST(SortedTable, CanCreateEmptyTable) {
+    SortedTable<int, std::string> table;
+    ASSERT_EQ(table.begin(), table.end());
+}
+
+TEST(SortedTable, InsertIncreasesSize) {
+    SortedTable<int, int> table;
+    table.insert(1, 10);
+    ASSERT_NE(table.begin(), table.end());
+}
+
+TEST(SortedTable, FindExistingElement) {
+    SortedTable<int, std::string> table;
+    table.insert(1, "one");
+    auto it = table.find(1);
+    ASSERT_NE(it, table.end());
+    ASSERT_EQ(it->second, "one");
+}
+
+TEST(SortedTable, InsertThrowsWhenDuplicate) {
+    SortedTable<std::string, int> table;
+    table.insert("key", 10);
+    ASSERT_THROW(table.insert("key", 20), const char*);
+}
+
+TEST(SortedTable, EraseRemovesElement) {
+    SortedTable<int, double> table;
+    table.insert(1, 3.14);
+    table.erase(1);
+    ASSERT_EQ(table.find(1), table.end());
+}
+
+TEST(SortedTable, EraseNonExistingThrows) {
+    SortedTable<int, int> table;
+    ASSERT_THROW(table.erase(2), const char*);
+}
+
+TEST(SortedTable, ElementsAreSortedAfterInsert) {
+    SortedTable<int, char> table;
+    table.insert(3, 'C');
+    table.insert(1, 'A');
+    table.insert(2, 'B');
+
+    auto it = table.begin();
+    ASSERT_EQ(it->first, 1);
+    ASSERT_EQ(it->second, 'A');
+
+    ++it;
+    ASSERT_EQ(it->first, 2);
+    ASSERT_EQ(it->second, 'B');
+
+    ++it;
+    ASSERT_EQ(it->first, 3);
+    ASSERT_EQ(it->second, 'C');
+}
+
+TEST(SortedTable, IteratorIncrement) {
+    SortedTable<int, int> table;
+    table.insert(1, 10);
+    table.insert(2, 20);
+
+    auto it = table.begin();
+    ASSERT_EQ(it->second, 10);
+
+    auto copy = it++;
+    ASSERT_EQ(copy->second, 10);
+    ASSERT_EQ(it->second, 20);
+
+    auto& ref = ++it;
+    ASSERT_EQ(ref, table.end());
+}
+
+TEST(SortedTable, MaintainsSortOrderAfterComplexInserts) {
+    SortedTable<int, int> table;
+    table.insert(5, 50);
+    table.insert(3, 30);
+    table.insert(7, 70);
+    table.insert(1, 10);
+    table.insert(9, 90);
+
+    auto it = table.begin();
+    ASSERT_EQ(it++->first, 1);
+    ASSERT_EQ(it++->first, 3);
+    ASSERT_EQ(it++->first, 5);
+    ASSERT_EQ(it++->first, 7);
+    ASSERT_EQ(it++->first, 9);
+    ASSERT_EQ(it, table.end());
+}
+
+TEST(SortedTable, CanUseRangeBasedForLoop) {
+    SortedTable<int, int> table;
+    table.insert(2, 20);
+    table.insert(1, 10);
+    table.insert(3, 30);
+
+    int expected_key = 1;
+    for (auto& pair : table) {
+        ASSERT_EQ(pair.first, expected_key++);
+    }
+}
+
+TEST(SortedTable, InsertReturnsCorrectIteratorPosition) {
+    SortedTable<int, std::string> table;
+    auto it1 = table.insert(3, "three");
+    ASSERT_EQ(it1->first, 3);
+
+    auto it2 = table.insert(1, "one");
+    ASSERT_EQ(it2->first, 1);
+
+    auto it3 = table.insert(5, "five");
+    ASSERT_EQ(it3->first, 5);
+}
 
 
 
+TEST(Monom, ConstructorAndGetters) {
+    Monom m(2.5, 3, 2, 1);
+    EXPECT_DOUBLE_EQ(m.getCoefficient(), 2.5);
+    EXPECT_EQ(m.getX(), 3);
+    EXPECT_EQ(m.getY(), 2);
+    EXPECT_EQ(m.getZ(), 1);
+}
 
+TEST(Monom, ToString) {
+    Monom m(-1.5, 0, 4, 2);
+    EXPECT_EQ(m.toString(), "-1.5*(x^0)*1*(y^4)*1*(z^2)");
+}
+
+TEST(Monom, ValidAddition) {
+    Monom m1(2.0, 1, 2, 3);
+    Monom m2(3.0, 1, 2, 3);
+    Monom result = m1 + m2;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 5.0);
+}
+
+TEST(Monom, InvalidAddition) {
+    Monom m1(1.0, 1, 1, 1);
+    Monom m2(2.0, 2, 2, 2);
+    EXPECT_THROW(m1 + m2, std::invalid_argument);
+}
+
+TEST(Monom, ValidSubtraction) {
+    Monom m1(5.0, 2, 3, 4);
+    Monom m2(2.0, 2, 3, 4);
+    Monom result = m1 - m2;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 3.0);
+}
+
+TEST(Monom, Multiplication) {
+    Monom m1(2.0, 1, 2, 3);
+    Monom m2(3.0, 4, 5, 6);
+    Monom result = m1 * m2;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 6.0);
+    EXPECT_EQ(result.getX(), 5);
+    EXPECT_EQ(result.getY(), 7);
+    EXPECT_EQ(result.getZ(), 9);
+}
+
+TEST(Monom, DivisionValid) {
+    Monom m1(6.0, 5, 5, 5);
+    Monom m2(2.0, 2, 3, 4);
+    Monom result = m1 / m2;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 3.0);
+    EXPECT_EQ(result.getX(), 3);
+    EXPECT_EQ(result.getY(), 2);
+    EXPECT_EQ(result.getZ(), 1);
+}
+
+TEST(Monom, DivisionInvalidDegree) {
+    Monom m1(1.0, 1, 1, 1);
+    Monom m2(1.0, 2, 2, 2);
+    EXPECT_THROW(m1 / m2, std::invalid_argument);
+}
+
+TEST(Monom, CompoundAddition) {
+    Monom m(4.0, 2, 2, 2);
+    m += Monom(1.0, 2, 2, 2);
+    EXPECT_DOUBLE_EQ(m.getCoefficient(), 5.0);
+}
+
+TEST(Monom, ScalarMultiplication) {
+    Monom m(2.0, 1, 1, 1);
+    Monom result = m * 3.0;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 6.0);
+    EXPECT_EQ(result.getX(), 1);
+}
+
+TEST(Monom, DivisionByZeroScalar) {
+    Monom m(2.0, 1, 1, 1);
+    EXPECT_THROW(m / 0.0, std::invalid_argument);
+}
+
+TEST(Monom, MultiplyAssignScalar) {
+    Monom m(3.0, 2, 3, 4);
+    m *= 2.0;
+    EXPECT_DOUBLE_EQ(m.getCoefficient(), 6.0);
+    EXPECT_EQ(m.getX(), 2);
+}
+
+TEST(Monom, ZeroCoefficientAfterOperations) {
+    Monom m1(2.0, 3, 3, 3);
+    Monom m2(-2.0, 3, 3, 3);
+    Monom result = m1 + m2;
+    EXPECT_DOUBLE_EQ(result.getCoefficient(), 0.0);
+}
+
+TEST(Monom, SelfAssignment) {
+    Monom m(5.0, 1, 1, 1);
+    m *= m;
+    EXPECT_DOUBLE_EQ(m.getCoefficient(), 25.0);
+    EXPECT_EQ(m.getX(), 2);
+    EXPECT_EQ(m.getY(), 2);
+    EXPECT_EQ(m.getZ(), 2);
+}
+
+
+TEST(Polinom, EmptyPolinomToString) {
+    Polinom p;
+    EXPECT_EQ(p.toString(), "");
+}
+
+TEST(Polinom, AddSingleMonom) {
+    Polinom p;
+    p.addMonom(Monom(2.5, 1, 2, 3));
+    EXPECT_EQ(p.toString(), "2.5*(x^1)*1*(y^2)*1*(z^3)");
+}
+
+TEST(Polinom, AddZeroCoefficientMonom) {
+    Polinom p;
+    p.addMonom(Monom(0.0, 1, 1, 1));
+    EXPECT_EQ(p.toString(), "");
+}
+
+TEST(Polinom, MergeSimilarMonoms) {
+    Polinom p;
+    p.addMonom(Monom(2.0, 1, 1, 1));
+    p.addMonom(Monom(3.0, 1, 1, 1));
+    EXPECT_EQ(p.toString(), "5*(x^1)*1*(y^1)*1*(z^1)");
+}
+
+TEST(Polinom, RemoveZeroResultAfterMerge) {
+    Polinom p;
+    p.addMonom(Monom(2.0, 2, 2, 2));
+    p.addMonom(Monom(-2.0, 2, 2, 2));
+    EXPECT_EQ(p.toString(), "");
+}
+
+TEST(Polinom, AddDifferentMonoms) {
+    Polinom p;
+    p.addMonom(Monom(1.0, 3, 2, 1));
+    p.addMonom(Monom(2.0, 1, 4, 2));
+    EXPECT_EQ(p.toString(), 
+        "1*(x^3)*1*(y^2)*1*(z^1) + 2*(x^1)*1*(y^4)*1*(z^2)");
+}
+
+TEST(Polinom, PolinomAddition) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(2.0, 1, 1, 1));
+    p2.addMonom(Monom(3.0, 1, 1, 1));
+    
+    Polinom result = p1 + p2;
+    EXPECT_EQ(result.toString(), "5*(x^1)*1*(y^1)*1*(z^1)");
+}
+
+TEST(Polinom, PolinomSubtraction) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(5.0, 2, 2, 2));
+    p2.addMonom(Monom(3.0, 2, 2, 2));
+    
+    Polinom result = p1 - p2;
+    EXPECT_EQ(result.toString(), "2*(x^2)*1*(y^2)*1*(z^2)");
+}
+
+TEST(Polinom, PolinomMultiplication) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(2.0, 1, 0, 0));
+    p2.addMonom(Monom(3.0, 0, 1, 0));
+    
+    Polinom result = p1 * p2;
+    EXPECT_EQ(result.toString(), "6*(x^1)*1*(y^1)*1*(z^0)");
+}
+
+TEST(Polinom, PolinomDivisionValid) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(6.0, 3, 2, 1));
+    p2.addMonom(Monom(2.0, 1, 1, 0));
+    
+    Polinom result = p1 / p2;
+    EXPECT_EQ(result.toString(), "3*(x^2)*1*(y^1)*1*(z^1)");
+}
+
+TEST(Polinom, PolinomDivisionInvalid) {
+    Polinom p1, p2;
+    p2.addMonom(Monom(1.0, 1, 0, 0));
+    p2.addMonom(Monom(1.0, 0, 1, 0));
+    
+    EXPECT_THROW(p1 / p2, std::invalid_argument);
+}
+
+TEST(Polinom, CompoundAdditionAssignment) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(1.0, 1, 0, 0));
+    p2.addMonom(Monom(2.0, 0, 1, 0));
+    
+    p1 += p2;
+    EXPECT_EQ(p1.toString(), 
+        "1*(x^1)*1*(y^0)*1*(z^0) + 2*(x^0)*1*(y^1)*1*(z^0)");
+}
+
+TEST(Polinom, MultiplyByScalarAndCleanup) {
+    Polinom p;
+    p.addMonom(Monom(2.0, 1, 0, 0));
+    p.addMonom(Monom(3.0, 0, 1, 0));
+    
+    p *= 0.0;
+    EXPECT_EQ(p.toString(), "");
+}
+
+TEST(Polinom, ScalarDivision) {
+    Polinom p;
+    p.addMonom(Monom(4.0, 2, 0, 1));
+    p.addMonom(Monom(2.0, 1, 1, 0));
+    
+    Polinom result = p / 2.0;
+    EXPECT_EQ(result.toString(), 
+        "2*(x^2)*1*(y^0)*1*(z^1) + 1*(x^1)*1*(y^1)*1*(z^0)");
+}
+
+TEST(Polinom, FriendScalarMultiplication) {
+    Polinom p;
+    p.addMonom(Monom(1.5, 1, 0, 0));
+    
+    Polinom result = 2.0 * p;
+    EXPECT_EQ(result.toString(), "3*(x^1)*1*(y^0)*1*(z^0)");
+}
+
+TEST(Polinom, DivisionByZeroScalar) {
+    Polinom p;
+    p.addMonom(Monom(1.0, 1, 1, 1));
+    EXPECT_THROW(p / 0.0, std::invalid_argument);
+}
+
+TEST(Polinom, ComplexOperationChain) {
+    Polinom p1, p2;
+    p1.addMonom(Monom(2.0, 2, 0, 1));
+    p2.addMonom(Monom(3.0, 1, 1, 0));
+    
+    Polinom result = (p1 + p2) * p1;
+    EXPECT_EQ(result.toString(), 
+        "4*(x^4)*1*(y^0)*1*(z^2) + 6*(x^3)*1*(y^1)*1*(z^1)");
+}
+
+TEST(Polinom, SelfAssignmentOperations) {
+    Polinom p;
+    p.addMonom(Monom(2.0, 1, 0, 0));
+    
+    p *= p;
+    EXPECT_EQ(p.toString(), "4*(x^2)*1*(y^0)*1*(z^0)");
+}
+
+TEST(Polinom, DegreeOrderPreservation) {
+    Polinom p;
+    p.addMonom(Monom(1.0, 3, 2, 1));
+    p.addMonom(Monom(1.0, 1, 4, 2));
+    p.addMonom(Monom(1.0, 3, 2, 1)); // Should merge
+    
+    EXPECT_EQ(p.toString(), 
+        "2*(x^3)*1*(y^2)*1*(z^1) + 1*(x^1)*1*(y^4)*1*(z^2)");
+}
 /*int key1 = translator.addPolinom("x^2 + 3y - 5z");
     int key2 = translator.addPolinom("2xy + 4z^3");
 */

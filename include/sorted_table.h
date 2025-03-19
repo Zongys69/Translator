@@ -66,7 +66,7 @@ public:
 		}
 		return end();
 	}
-	Iterator errase(const TKey& key)
+	Iterator erase(const TKey& key)
 	{
 		auto it = find(key);
 		if (it == end())
