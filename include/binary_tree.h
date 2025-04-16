@@ -7,12 +7,29 @@ struct Node {
     TValue value;
     Node<TKey, TValue>* left;
     Node<TKey, TValue>* right;
+    
 };
 
 template <class TKey, class TValue>
 class BinaryTree {
 public:
     BinaryTree() : root(nullptr) {}
+
+    ~BinaryTree() {
+        clear(root);
+    }
+    BinaryTree& operator=(const BinaryTree& other) {
+        if (this == &other)
+            return *this;
+
+        clear(root);  
+        root = copyTree(other.root);  
+        return *this;
+    }
+
+    BinaryTree(const BinaryTree& other) {
+        root = copyTree(other.root);
+    }
 
     void insert(TKey key, TValue value) {
         root = insertRecursive(root, key, value);
@@ -21,7 +38,7 @@ public:
     void remove(TKey key) {
         root = deleteRecursive(root, key);
     }
-
+    
     TValue* search(TKey key) {
         Node<TKey, TValue>* result = searchRecursive(root, key);
         if (result != nullptr)
@@ -38,6 +55,22 @@ public:
  
 private:
     Node<TKey, TValue>* root;
+
+    void clear(Node<TKey, TValue>* node) {
+        if (node) {
+            clear(node->left);
+            clear(node->right);
+            delete node;
+        }
+    }
+
+    Node<TKey, TValue>* copyTree(const Node<TKey, TValue>* node) {
+        if (!node) return nullptr;
+        Node<TKey, TValue>* newNode = createNode(node->key, node->value);
+        newNode->left = copyTree(node->left);
+        newNode->right = copyTree(node->right);
+        return newNode;
+    }
 
     Node<TKey, TValue>* createNode(TKey key, TValue value) {
         return new Node<TKey, TValue>{ key, value, nullptr, nullptr };
@@ -72,7 +105,7 @@ private:
     }
 
     Node<TKey, TValue>* deleteRecursive(Node<TKey, TValue>* node, TKey key) {
-        if (node == nullptr) 
+        if (node == nullptr)
             return node;
 
         if (key < node->key) {
@@ -82,21 +115,35 @@ private:
             node->right = deleteRecursive(node->right, key);
         }
         else {
-            if (node->left == nullptr)
-                return node->right;
-            if (node->right == nullptr)
-                return node->left;
+            if (node->left == nullptr) {
+                Node<TKey, TValue>* temp = node->right;
+                delete node;
+                return temp;
+            }
+            else if (node->right == nullptr) {
+                Node<TKey, TValue>* temp = node->left;
+                delete node;
+                return temp;
+            }
 
             Node<TKey, TValue>* successor = minValueNode(node->right);
-            node->key = successor->key;
-            node->value = successor->value;
-            node->right = deleteRecursive(node->right, successor->key);
+            if (!successor) return node;
+
+            TKey succKey = successor->key;
+            TValue succValue = successor->value;
+
+            node->key = succKey;
+            node->value = succValue;
+
+            node->right = deleteRecursive(node->right, succKey);
         }
         return node;
     }
 
     Node<TKey, TValue>* minValueNode(Node<TKey, TValue>* node) {
-        while (node && node->left)
+        if (node == nullptr)
+            return nullptr;
+        while (node->left != nullptr)
             node = node->left;
         return node;
     }

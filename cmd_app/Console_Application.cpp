@@ -61,7 +61,7 @@
 //	
 //}
 #include <binary_tree.h>
-void main() {
+int main() {
 	setlocale(LC_ALL, "");
     BinaryTree<int, std::string> tree;
 
@@ -74,4 +74,10 @@ void main() {
 
     tree.remove(10);
     tree.printInOrder();
+
+    BinaryTree<int, std::string> tree1;
+
+    tree1 = tree;
+    tree1.printInOrder();
+
 }
