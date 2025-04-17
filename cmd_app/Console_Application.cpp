@@ -1,4 +1,4 @@
-//
+﻿//
 //#include "artans.h"
 //#include "sorted_table.h"
 //
@@ -61,23 +61,46 @@
 //	
 //}
 #include <binary_tree.h>
+#include <iostream>
+#include <cassert>
+
+
 int main() {
-	setlocale(LC_ALL, "");
     BinaryTree<int, std::string> tree;
-
-    tree.insert(10, "xyz");
-    tree.insert(5, "x^1");
-    tree.insert(15, "2z");
-    tree.insert(10, "yz"); 
-
-    tree.printInOrder(); 
-
-    tree.remove(10);
+    
+    setlocale(LC_ALL, "Ru");
+   
+    tree.insert(10, "a");
+    tree.insert(20, "b");
+    tree.insert(30, "c");
+    tree.insert(15, "d");
+    tree.insert(25, "e");
+    tree.insert(5, "f");
+    tree.insert(1, "a");
+    std::cout << "Дерево после вставок:\n";
+    tree.printTree(tree.getRoot());
     tree.printInOrder();
 
-    BinaryTree<int, std::string> tree1;
+   
+    assert(tree.search(10) && *tree.search(10) == "a");
+    assert(tree.search(25) && *tree.search(25) == "e");
+    assert(tree.search(100) == nullptr);
 
-    tree1 = tree;
-    tree1.printInOrder();
+   
+    tree.insert(10, "updated");
+    assert(tree.search(10) && *tree.search(10) == "updated");
 
+  
+    tree.remove(5);
+    
+
+    std::cout << "\nДерево после удаления 15, 25, 10:\n";
+    tree.printTree(tree.getRoot());
+    tree.printInOrder();
+    
+    BinaryTree<int, std::string> tree2 = tree;
+
+    
+    tree2.printTree(tree2.getRoot());
+    return 0;
 }
