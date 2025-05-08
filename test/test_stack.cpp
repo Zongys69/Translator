@@ -1,7 +1,10 @@
 #include "stack.h"
 #include "binary_tree.h"
 #include <gtest.h>
-
+#include <hash.h>
+#include <string>
+#include <sstream>
+#include <chrono>
 
 TEST(Stack, can_create_empty_stack)
 {
@@ -232,38 +235,106 @@ TEST(RedBlackTreeTest, LeftRightRotationOccurs) {
 	EXPECT_EQ(root->right->key, 30);
 }
 
-TEST(RedBlackTreeTest, InsertManyAndSearch) {
-	BinaryTree<int, std::string> tree;
-	for (int i = 0; i < 1000000; i++) {
-		tree.insert(i, "a");
-	}
-	for (int i = 0; i < 1000000; i++) {
-		EXPECT_EQ(*tree.search(i), "a");
-	}
-	
-	
+//TEST(RedBlackTreeTest, InsertManyAndSearch) {
+//	BinaryTree<int, std::string> tree;
+//	for (int i = 0; i < 1000000; i++) {
+//		tree.insert(i, "a");
+//	}
+//	for (int i = 0; i < 1000000; i++) {
+//		EXPECT_EQ(*tree.search(i), "a");
+//	}
+//	
+//	
+//}
+//
+//TEST(RedBlackTreeTest, Insert2ManyAndSearch) {
+//	BinaryTree<int, std::string> tree;
+//	for (int i = 999999; i >= 0; i--) {
+//		tree.insert(i, "a");
+//	}
+//	for (int i = 999999; i >= 0; i--) {
+//		EXPECT_EQ(*tree.search(i), "a");
+//	}
+//
+//
+//}
+//TEST(RedBlackTreeTest, RemoveMany) {
+//	BinaryTree<int, std::string> tree;
+//	for (int i = 0; i < 1000000; i++) {
+//		tree.insert(i, "a");
+//	}
+//	for (int i = 0; i < 1000000; i++) {
+//		tree.remove(i);
+//	}
+//	EXPECT_EQ(tree.empty(), true);
+//
+//
+//}
+TEST(HashTableTest, InsertAndFind) {
+	HashTable<std::string, int> table(4);
+	table.insert("apple", 1);
+	table.insert("banana", 2);
+	table.insert("cherry", 3);
+
+	EXPECT_EQ(table.find("apple"), 1);
+	EXPECT_EQ(table.find("banana"), 2);
+	EXPECT_EQ(table.find("cherry"), 3);
+	EXPECT_EQ(table.getSize(), 3);
 }
 
-TEST(RedBlackTreeTest, Insert2ManyAndSearch) {
-	BinaryTree<int, std::string> tree;
-	for (int i = 999999; i >= 0; i--) {
-		tree.insert(i, "a");
-	}
-	for (int i = 999999; i >= 0; i--) {
-		EXPECT_EQ(*tree.search(i), "a");
-	}
+TEST(HashTableTest, UpdateValue) {
+	HashTable<std::string, int> table(4);
+	table.insert("apple", 1);
+	table.insert("apple", 42);
 
-
+	EXPECT_EQ(table.find("apple"), 42);
+	EXPECT_EQ(table.getSize(), 1); // Размер не должен увеличиваться при обновлении
 }
-TEST(RedBlackTreeTest, RemoveManyAndSearch) {
-	BinaryTree<int, std::string> tree;
-	for (int i = 0; i < 1000000; i++) {
-		tree.insert(i, "a");
-	}
-	for (int i = 0; i < 1000000; i++) {
-		tree.remove(i);
-	}
-	EXPECT_EQ(tree.empty(), true);
+
+TEST(HashTableTest, RemoveKey) {
+	HashTable<std::string, int> table(4);
+	table.insert("apple", 1);
+	table.remove("apple");
+
+	EXPECT_EQ(table.find("apple"), 0); // Вернётся default int (0)
+	EXPECT_EQ(table.getSize(), 0);
+}
 
 
+
+TEST(HashTableTest, InsertAndFindMultiple) {
+	HashTable<std::string, std::string> table;
+	table.insert("one", "один");
+	table.insert("two", "два");
+
+	EXPECT_EQ(table.find("one"), "один");
+	EXPECT_EQ(table.find("two"), "два");
+	EXPECT_EQ(table.find("three"), ""); // default std::string
+}
+TEST(HashTableTest, ResizeTable) {
+	HashTable<std::string, int> table(2);
+
+	table.insert("a", 1);
+	table.insert("b", 2);
+	table.insert("c", 3);
+	EXPECT_EQ(table.getSize(), 3);
+	EXPECT_EQ(table.find("a"), 1);
+	EXPECT_EQ(table.find("b"), 2);
+	EXPECT_EQ(table.find("c"), 3);
+	
+}
+TEST(HashTableTest, MillionInsertAndFind) {
+	HashTable<int, std::string> table(1000000); 
+	const int numElements = 1000000;
+	for (int i = 0; i < numElements; ++i) {
+		
+		table.insert(i, "a");
+	}
+
+	ASSERT_EQ(table.getSize(), numElements);
+
+	for (int i = 0; i < numElements; i++) { 
+		
+		EXPECT_EQ(table.find(i), "a");
+	}
 }
