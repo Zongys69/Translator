@@ -49,7 +49,9 @@ public:
 
 		friend class SortedTable<TKey, TValue>;
 	};
-
+	size_t size() const {
+		return data.size();
+	}
 	Iterator find(const TKey& key) 
 	{
 		int left = 0;
@@ -59,7 +61,7 @@ public:
 			int middle = (left + right) / 2;
 			if (key < data[middle].first)
 				right = middle - 1;
-			else if (key < data[middle].first)
+			else if (key > data[middle].first)
 				left = middle + 1;
 			else
 				return Iterator(data.begin() + middle);

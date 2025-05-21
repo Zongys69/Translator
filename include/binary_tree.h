@@ -40,6 +40,9 @@ public:
     Node<TKey, TValue>* getRoot() const {
         return root;
     }
+    size_t size() const {
+        return countNodes(root);
+    }
 
     std::string nodeColor(Node<TKey, TValue>* node) {
         if (!node) return "nil";
@@ -333,7 +336,10 @@ private:
         if (grandparent == nullptr) return nullptr;
         return (x->parent == grandparent->left) ? grandparent->right : grandparent->left;
     }
-
+    size_t countNodes(Node<TKey, TValue>* node) const {
+        if (node == NIL) return 0;
+        return 1 + countNodes(node->left) + countNodes(node->right);
+    }
     void clear(Node<TKey, TValue>* node) {
         if (node != NIL) {
             clear(node->left);
